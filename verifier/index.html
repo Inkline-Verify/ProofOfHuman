@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inkline verify</title>
+<link rel="icon" href="./inklinestamp.png">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ok: #1a7f37;
+    --bad: #b42318;
+    --fg: #111;
+    --muted: #666;
+    --line: #ccc;
+    --bg: #fff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #e6e6e6; --muted: #8a8a8a; --line: #333; --bg: #0c0c0c; --ok: #3fb950; --bad: #f85149; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--bg); color: var(--fg);
+    max-width: 620px; margin: 0 auto; padding: 3rem 1.25rem 4rem;
+  }
+  header { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.25rem; }
+  header img { width: 20px; height: 20px; align-self: center; }
+  header .name { font-weight: 700; font-size: 1rem; }
+  header .path { color: var(--muted); }
+  header nav { margin-left: auto; font-size: 0.8rem; }
+  header nav a { color: var(--muted); text-decoration: none; margin-left: 0.9rem; }
+  header nav a:hover { color: var(--fg); text-decoration: underline; }
+  p.lead { color: var(--muted); margin: 0.75rem 0 2.25rem; }
+  label {
+    display: block; margin: 1.4rem 0 0.3rem;
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+  }
+  input, textarea {
+    width: 100%; font: inherit; color: inherit; background: transparent;
+    border: none; border-bottom: 1px solid var(--line);
+    padding: 0.35rem 0; border-radius: 0;
+  }
+  input:focus, textarea:focus { outline: none; border-bottom-color: var(--fg); }
+  textarea { min-height: 7.5rem; resize: vertical; }
+  textarea.small { min-height: 2.8rem; font-size: 0.75rem; color: var(--muted); word-break: break-all; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2rem; }
+  @media (max-width: 540px) { .row { grid-template-columns: 1fr; } }
+  details { margin-top: 1.6rem; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; user-select: none; }
+  button#verify {
+    margin-top: 2.25rem; width: 100%; font: inherit; font-weight: 700;
+    padding: 0.75rem; border: 1px solid var(--fg); border-radius: 0;
+    background: var(--fg); color: var(--bg); cursor: pointer;
+  }
+  button#verify:hover { background: transparent; color: var(--fg); }
+  #result { margin-top: 2rem; }
+  #result .panel { border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  .verdict { font-weight: 700; }
+  .verdict.ok { color: var(--ok); }
+  .verdict.bad { color: var(--bad); }
+  .tier { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+  .cta { font-size: 0.85rem; margin-top: 1.1rem; padding-top: 0.9rem; border-top: 1px dashed var(--line); }
+  .cta a { color: var(--fg); font-weight: 700; }
+  ul.checks { list-style: none; padding: 0; margin: 1rem 0 0; }
+  ul.checks li { padding: 0.1rem 0; font-size: 0.85rem; }
+  ul.checks .pass::before { content: "[ok] "; color: var(--ok); }
+  ul.checks .fail::before { content: "[--] "; color: var(--bad); }
+  .note { color: var(--muted); font-size: 0.78rem; margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  .note a { color: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <img src="./inklinestamp.png" alt="">
+  <span class="name">inkline</span>
+  <span class="path">/ verify</span>
+  <nav><a href="https://www.inklineverify.com" target="_blank" rel="noreferrer">home</a> <a href="https://www.inklineverify.com/docs" target="_blank" rel="noreferrer">install</a></nav>
+</header>
+<p class="lead">
+  Paste the email to confirm a human approved exactly these words with
+  Touch&nbsp;ID. Runs entirely in your browser — nothing leaves this page.
+</p>
+
+<div class="row">
+  <div>
+    <label for="from">from</label>
+    <input id="from" placeholder="sender@example.com" autocomplete="off" spellcheck="false">
+  </div>
+  <div>
+    <label for="subject">subject</label>
+    <input id="subject" autocomplete="off" spellcheck="false">
+  </div>
+</div>
+<div class="row">
+  <div>
+    <label for="to">to (comma-separated)</label>
+    <input id="to" placeholder="alice@example.com" autocomplete="off" spellcheck="false">
+  </div>
+  <div>
+    <label for="cc">cc (optional)</label>
+    <input id="cc" autocomplete="off" spellcheck="false">
+  </div>
+</div>
+<label for="body">message text</label>
+<textarea id="body" placeholder="paste the message text exactly as received — the Inkline footer line is ignored. If the email had no text, leave this empty." spellcheck="false"></textarea>
+<p class="tier">Only text is signed. Images and attachments are not covered by the receipt — leave them out. A Google Drive attachment shows up as its file name in the text, so include that.</p>
+
+<details id="advanced">
+  <summary>receipt &amp; notary — filled in from the link</summary>
+  <label for="receipt">receipt</label>
+  <textarea id="receipt" class="small" spellcheck="false"></textarea>
+  <label for="notaryPub">notary public key</label>
+  <input id="notaryPub" spellcheck="false">
+</details>
+
+<button id="verify">verify</button>
+
+<div id="result" aria-live="polite"></div>
+
+<p class="note">
+  A valid receipt proves the enrolled presence key signed exactly this email
+  after a Touch ID check on the signer's Mac. The key is not hardware-attested:
+  its Secure Enclave provenance is on the honor system. It does not prove who
+  composed the words. Fields are canonicalized before hashing, so transport
+  rewrites don't break verification — any change to the words does. BCC is
+  never part of the signed content: it would reveal hidden recipients.
+  <a href="https://github.com/Inkline-Verify/ProofOfHuman" target="_blank" rel="noreferrer">source</a>
+</p>
+
+<script src="./config.js"></script>
+<script type="module" src="./verify.js"></script>
+</body>
+</html>

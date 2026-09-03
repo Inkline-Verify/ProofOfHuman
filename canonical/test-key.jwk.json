@@ -1,0 +1,15 @@
+{
+  "comment": "TEST VECTOR KEY ONLY. Deliberately public. Never use outside tests.",
+  "priv": {
+    "key_ops": [
+      "sign"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "GwwymHFrLDXjtlxyrFJGp7ro2264V5hjnUOcdaJTweQ",
+    "y": "U2_Uj4xDtBccpCLCcI2fo6wqid9mmtmsD26hvszG-3E",
+    "crv": "P-256",
+    "d": "k3YYpaPY81L67z00I1V1UP1uGlIjSBIS1qWi3DKI1cw"
+  },
+  "pub": "BBsMMphxayw147ZccqxSRqe66NtuuFeYY51DnHWiU8HkU2_Uj4xDtBccpCLCcI2fo6wqid9mmtmsD26hvszG-3E"
+}

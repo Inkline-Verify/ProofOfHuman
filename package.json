@@ -1,0 +1,19 @@
+{
+  "name": "proof-of-human",
+  "version": "0.1.0",
+  "description": "Proof of Human \u2014 Inkline: biometric proof-of-presence for email (helper, notary, verifier, extension).",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Inkline-Verify/ProofOfHuman.git"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test notary/test/*.test.js",
+    "vectors": "node scripts/gen-vectors.mjs",
+    "notary": "node notary/src/main.js"
+  }
+}

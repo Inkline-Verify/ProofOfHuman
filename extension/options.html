@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Inkline stamp</title>
+<style>
+  :root { color-scheme: light dark; --ok:#1a7f37; --bad:#b42318; --fg:#111; --muted:#666; --line:#ccc; --bg:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#e6e6e6; --muted:#8a8a8a; --line:#333; --bg:#0c0c0c; --ok:#3fb950; --bad:#f85149; } }
+  * { box-sizing: border-box; }
+  body { font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--fg); background: var(--bg);
+         margin: 0; padding: 18px 20px 20px; width: 340px; }
+  header { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 4px; }
+  header .name { font-weight: 700; }
+  header .path { color: var(--muted); }
+  .status { font-size: 12px; color: var(--muted); margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .status .dot.ok { color: var(--ok); }
+  .status .dot.bad { color: var(--bad); }
+  .status .dot.wait { color: var(--muted); }
+  .status a { color: var(--bad); margin-left: 6px; }
+  h1 { display: none; }
+  p.sub { color: var(--muted); margin: 0 0 16px; font-size: 12px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 18px 0 8px; font-weight: 400; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
+  .swatch { width: 40px; height: 40px; border-radius: 50%; border: 2px solid transparent; padding: 2px; cursor: pointer; background: none; }
+  .swatch img { width: 100%; height: 100%; display: block; border-radius: 50%; }
+  .swatch[aria-checked="true"] { border-color: var(--fg); }
+  select { width: 100%; font: inherit; color: inherit; background: transparent; border: none; border-bottom: 1px solid var(--line);
+           padding: 6px 0; border-radius: 0; }
+  select:focus { outline: none; border-bottom-color: var(--fg); }
+  label.row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  input[type=checkbox] { accent-color: var(--fg); }
+  .preview { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .preview .mail { margin-bottom: 12px; }
+  .preview img { width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; }
+  .preview a { color: inherit; }
+  .saved { color: var(--ok); font-size: 12px; margin-top: 10px; height: 16px; }
+</style>
+</head>
+<body>
+  <header><span class="name">inkline</span><span class="path">/ stamp</span></header>
+  <div id="status" class="status">
+    <span class="dot wait">●</span> <span id="status-text">checking</span>
+    <a id="status-setup" href="#" hidden>open setup</a>
+  </div>
+  <h1>Stamp appearance</h1>
+  <p class="sub">Cosmetic only. The receipt and verification are identical whatever you pick.</p>
+
+  <h2>colour</h2>
+  <div class="swatches" id="swatches" role="radiogroup"></div>
+
+  <h2>wording</h2>
+  <select id="label"></select>
+  <label class="row"><input type="checkbox" id="icon"> show the stamp icon</label>
+
+  <div class="preview">
+    <div class="mail">Thanks again, talk soon.</div>
+    <div id="preview"></div>
+  </div>
+  <div class="saved" id="saved"></div>
+
+  <script src="config.js"></script>
+  <script src="stamp-style.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

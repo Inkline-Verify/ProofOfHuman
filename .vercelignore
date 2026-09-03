@@ -1,0 +1,16 @@
+# Only the static verifier (and the redirect in vercel.json) should deploy.
+# data/ holds the notary's private signing key — never upload it.
+data/
+dist/
+node_modules/
+helper/
+notary/
+scripts/
+canonical/
+extension/
+*.md
+package.json
+.railway/
+.railwayignore
+*.zip
+.git/

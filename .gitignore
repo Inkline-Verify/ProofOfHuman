@@ -1,0 +1,14 @@
+node_modules/
+.build/
+.swiftpm/
+data/
+dist/
+*.pem.local
+.DS_Store
+.env
+.env.*
+*.log
+*.pem
+*.zip
+.vercel
+.vercel/

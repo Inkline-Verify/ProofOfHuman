@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inkline setup</title>
+<style>
+  :root { color-scheme: light dark; --ok:#1a7f37; --bad:#b42318; --fg:#111; --muted:#666; --line:#ccc; --bg:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#e6e6e6; --muted:#8a8a8a; --line:#333; --bg:#0c0c0c; --ok:#3fb950; --bad:#f85149; } }
+  body { font: 14px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg); color: var(--fg);
+         max-width: 620px; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+  header { display: flex; align-items: baseline; gap: 0.6rem; }
+  header img { width: 20px; height: 20px; align-self: center; }
+  header .name { font-weight: 700; font-size: 1rem; }
+  header .path { color: var(--muted); }
+  p.lead { color: var(--muted); margin: 0.75rem 0 2rem; }
+  .step { border-top: 1px solid var(--line); padding: 1.1rem 0; }
+  .step h2 { font-size: 0.9rem; margin: 0; font-weight: 700; }
+  .step h2 .mark { display: inline-block; min-width: 3.6em; white-space: pre; margin-right: 0.6em; }
+  .mark.ok { color: var(--ok); }
+  .mark.bad { color: var(--bad); }
+  .mark.wait { color: var(--muted); }
+  .step .how { color: var(--muted); font-size: 0.85rem; margin: 0.4rem 0 0 4.2em; }
+  .step .how code { background: color-mix(in srgb, var(--fg) 8%, transparent); padding: 0.1em 0.4em; }
+  .step .how a { color: inherit; }
+  button { font: inherit; border: 1px solid var(--fg); background: transparent; color: var(--fg);
+           padding: 0.4rem 1rem; cursor: pointer; border-radius: 0; margin-top: 1.5rem; }
+  button:hover { background: var(--fg); color: var(--bg); }
+  .actions { display: flex; gap: 0.8rem; }
+</style>
+</head>
+<body>
+<header>
+  <img src="stamps/inkline.png" alt="">
+  <span class="name">inkline</span>
+  <span class="path">/ setup</span>
+</header>
+<p class="lead">Three checks and a test email. This page re-checks live. Leave it open while you fix anything missing.</p>
+
+<div class="step" id="step-helper">
+  <h2><span class="mark wait">[ .. ]</span>Helper app installed</h2>
+  <p class="how" hidden id="helper-fix">
+    One command in Terminal. It downloads the notarized helper from the
+    <a href="https://github.com/Inkline-Verify/ProofOfHuman/releases" target="_blank" rel="noreferrer">GitHub release</a>,
+    verifies its checksum, connects it to Chrome, and enrolls this Mac:<br>
+    <code>curl -fsSL https://raw.githubusercontent.com/Inkline-Verify/ProofOfHuman/main/install.sh -o install.sh &amp;&amp; sh install.sh</code>
+  </p>
+</div>
+
+<div class="step" id="step-enroll">
+  <h2><span class="mark wait">[ .. ]</span>Enrolled with the notary</h2>
+  <p class="how" hidden id="enroll-fix">
+    Run the install command above again. Enrollment is its last step. It
+    creates a fingerprint-locked key in this Mac's Secure Enclave.
+  </p>
+</div>
+
+<div class="step" id="step-style">
+  <h2><span class="mark wait">[ .. ]</span>Pick your stamp</h2>
+  <p class="how">Optional. <a href="#" id="open-options">Choose a colour and wording</a>. The receipt is identical whatever you pick.</p>
+</div>
+
+<div class="step" id="step-test">
+  <h2><span class="mark wait">[ .. ]</span>Send a test email</h2>
+  <p class="how">
+    <a href="https://mail.google.com/mail/u/0/#inbox?compose=new" target="_blank" rel="noreferrer">Compose a Gmail message to yourself</a>
+    and hit Send. The approval window appears, press Touch ID, and the received
+    email carries the <em>Verified with Inkline</em> footer.
+  </p>
+</div>
+
+<div class="actions">
+  <button id="recheck">check again</button>
+</div>
+
+<script src="onboarding.js"></script>
+</body>
+</html>

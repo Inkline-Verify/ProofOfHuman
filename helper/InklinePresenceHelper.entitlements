@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!-- Minimum entitlements for persisting a Secure Enclave key in the keychain
+     (without them SecKeyCreateRandomKey fails with errSecMissingEntitlement,
+     -34018). TEAMID is substituted by scripts/build-app.sh from the signing
+     identity. No App Attest entitlement: single enclave-unattested tier. -->
+<dict>
+    <key>com.apple.application-identifier</key>
+    <string>TEAMID.com.inkline.presence-helper</string>
+    <key>com.apple.developer.team-identifier</key>
+    <string>TEAMID</string>
+    <key>keychain-access-groups</key>
+    <array>
+        <string>TEAMID.com.inkline.presence-helper</string>
+    </array>
+</dict>
+</plist>
