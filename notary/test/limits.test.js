@@ -14,7 +14,7 @@ function req(server, method, path, body, headers = {}) {
 }
 
 test('per-IP rate limit returns 429', async () => {
-  const { server } = await createNotary({ rateLimit: { windowMs: 60_000, max: 3 } });
+  const { server } = await createNotary({ appId: 'FIXTURETEAM.com.example.inkline', rootPem: 'unused-in-this-test', rateLimit: { windowMs: 60_000, max: 3 } });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   try {
     for (let i = 0; i < 3; i++) {
@@ -31,7 +31,7 @@ test('per-IP rate limit returns 429', async () => {
 });
 
 test('registry cap refuses enrollment when full', async () => {
-  const { server, store } = await createNotary({ maxRegistry: 1, rateLimit: null });
+  const { server, store } = await createNotary({ appId: 'FIXTURETEAM.com.example.inkline', rootPem: 'unused-in-this-test', maxRegistry: 1, rateLimit: null });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   try {
     store.data.registry['existing-kid'] = { pub: 'x', enrolledAt: Date.now(), status: 'active' };

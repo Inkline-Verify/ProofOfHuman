@@ -89,7 +89,9 @@ $('verify').addEventListener('click', async () => {
   if (outcome.ok) {
     const tier = document.createElement('div');
     tier.className = 'tier';
-    tier.textContent = 'Trust tier: not hardware-attested. This receipt cannot yet prove the key lives in a Secure Enclave or that Touch ID was used; that proof comes from App Attest, available since macOS 27, which Inkline is wiring in. Read it as a good-faith signal.';
+    tier.textContent = outcome.tier === 'enclave-attested'
+      ? 'Trust tier: hardware-attested. Apple\u2019s App Attest certified that the signing key was generated inside a genuine Secure Enclave in the signed Inkline helper, and this receipt carried a fresh per-send attestation.'
+      : 'Legacy: issued before hardware attestation was required. This receipt cannot prove the key lives in a Secure Enclave; newer stamps carry Apple\u2019s hardware attestation. Read it as a good-faith signal from that era.';
     verdict.appendChild(tier);
     const scope = document.createElement('div');
     scope.className = 'tier';

@@ -13,6 +13,9 @@ public enum Presence {
     }
 
     public static var tagPresence: Data { tag("inkline.presence.v1") }
+    public static var tagAssert: Data { tag("inkline.assert.v1") }
+    public static var tagEnrollAttest: Data { tag("inkline.attest.v1") }
+    public static var tagEnrollBind: Data { tag("inkline.enroll.v1") }
 
     public struct Payload {
         public let contentHash: String
@@ -45,5 +48,22 @@ public enum Presence {
 
     public static func presenceSignInput(_ payload: Payload) -> Data {
         return tagPresence + payload.cjson().serializedData()
+    }
+
+    // Client data covered by the per-send App Attest assertion.
+    public static func assertClientData(_ payload: Payload) -> Data {
+        return tagAssert + payload.cjson().serializedData()
+    }
+
+    // Client data hash covered by the one-time App Attest key attestation.
+    public static func enrollAttestClientDataHash(challenge: Data) -> Data {
+        return Data(SHA256.hash(data: tagEnrollAttest + challenge))
+    }
+
+    // Client data covered by the enrollment assertion binding the presence
+    // public key to the attested App Attest key.
+    public static func enrollBindClientData(challenge: String, pub: String) -> Data {
+        let value: CJSON = .object(["challenge": .string(challenge), "pub": .string(pub)])
+        return tagEnrollBind + value.serializedData()
     }
 }

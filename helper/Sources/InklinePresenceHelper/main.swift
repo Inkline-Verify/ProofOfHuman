@@ -17,8 +17,11 @@
 // payload, and exchanges it at the notary for an offline-verifiable receipt.
 // It has no code path that signs a hash it was handed.
 //
-// Single trust tier: "enclave-unattested" — a Secure Enclave P-256 key gated
-// by biometryCurrentSet. The notary records the key as attested: false; no
+// One trust tier, mandatory: "enclave-attested". Apple App Attest (macOS
+// 27+, provisioned build) proves the Secure Enclave provenance of the
+// biometryCurrentSet presence key at enrollment, and every signature adds a
+// fresh assertion. On older macOS the helper refuses to enroll or sign with
+// a structured os_upgrade_required error — there is no weaker fallback. No
 // Apple App Attest material is produced or sent (the isSupported log line at
 // startup is informational only).
 
@@ -68,7 +71,19 @@ func failureJSON(_ error: Error) -> [String: Any] {
 
 // MARK: - Commands
 
-let enrollmentMode = "enclave-unattested"
+let helperVersion = "0.2.0"
+let tierAttested = "enclave-attested"
+
+func requireAppAttest() throws -> AppAttest {
+    let attest = AppAttest()
+    guard attest.isSupported else {
+        throw HelperFailure(
+            code: "os_upgrade_required",
+            message: "Inkline requires macOS 27 or later (App Attest)."
+        )
+    }
+    return attest
+}
 
 func runStatus() -> [String: Any] {
     let state = HelperState.load()
@@ -78,24 +93,28 @@ func runStatus() -> [String: Any] {
     }
     return [
         "ok": true,
+        "version": helperVersion,
         "enrolled": state.kid != nil && presenceKeyPresent,
         "kid": state.kid ?? NSNull(),
         "mode": state.mode ?? NSNull(),
-        "attested": false,
+        "attested": state.attestKeyId != nil,
+        "capable": AppAttest().isSupported,
         "presenceKeyPresent": presenceKeyPresent,
         "notary": state.notaryURL ?? defaultNotaryURL,
     ]
 }
 
-// The one enrollment path: create (or reuse) the Secure Enclave presence key
-// and register its public half with the notary as an unattested key.
+// Enrollment. App Attest is mandatory: on a Mac that cannot attest (macOS
+// before 27, or an unprovisioned build) this fails with os_upgrade_required
+// and no state is touched. There is deliberately no weaker path.
 func runEnroll(_ arguments: [String]) throws -> [String: Any] {
+    let attest = try requireAppAttest()
     let notary = try notaryClient(arguments)
     let info = try notary.info()
-    guard info.tier == enrollmentMode else {
+    guard info.tiers.contains(tierAttested) else {
         throw HelperFailure(
             code: "notary_tier_mismatch",
-            message: "notary advertises tier '\(info.tier)'; this helper enrolls as '\(enrollmentMode)'"
+            message: "notary serves tiers \(info.tiers), not '\(tierAttested)'"
         )
     }
 
@@ -110,17 +129,50 @@ func runEnroll(_ arguments: [String]) throws -> [String: Any] {
         )
     }
     let pub = B64.encode(try PresenceKey.publicKeyRaw(key))
+    return try enrollAttested(notary: notary, attest: attest, pub: pub)
+}
 
+// The attested path: a fresh App Attest key attests to Apple, then vouches
+// for the presence public key; the notary verifies the whole chain.
+func enrollAttested(notary: NotaryClient, attest: AppAttest, pub: String) throws -> [String: Any] {
     let challenge = try notary.enrollChallenge()
-    let kid = try notary.enroll(challenge: challenge, pub: pub)
+    guard let challengeBytes = B64.decode(challenge) else {
+        throw HelperFailure(code: "bad_challenge", message: "notary challenge is not base64url")
+    }
+
+    let attestKeyId = try attest.generateKey()
+    guard let attestKeyIdBytes = Data(base64Encoded: attestKeyId) else {
+        throw HelperFailure(code: "bad_key_id", message: "App Attest key id is not base64")
+    }
+
+    let attestation = try attest.attest(
+        keyId: attestKeyId,
+        clientDataHash: Presence.enrollAttestClientDataHash(challenge: challengeBytes)
+    )
+    let binding = try attest.assertion(
+        keyId: attestKeyId,
+        clientDataHash: Data(SHA256.hash(data: Presence.enrollBindClientData(challenge: challenge, pub: pub)))
+    )
+
+    let (kid, environment) = try notary.enrollAttested(
+        challenge: challenge,
+        keyId: B64.encode(attestKeyIdBytes),
+        attestation: B64.encode(attestation),
+        pub: pub,
+        binding: B64.encode(binding)
+    )
+    FileHandle.standardError.write(
+        "[inkline] attested enrollment (App Attest environment: \(environment ?? "unknown"))\n".data(using: .utf8)!)
 
     var state = HelperState.load()
     state.kid = kid
     state.notaryURL = notary.baseURL.absoluteString
-    state.mode = enrollmentMode
+    state.mode = tierAttested
+    state.attestKeyId = attestKeyId
     try state.save()
 
-    return ["ok": true, "kid": kid, "mode": enrollmentMode, "attested": false]
+    return ["ok": true, "kid": kid, "mode": tierAttested, "attested": true,
+            "environment": environment ?? NSNull()]
 }
 
 func parseEmail(_ dict: [String: Any]?) throws -> Canonical.Email {
@@ -141,9 +193,18 @@ func parseEmail(_ dict: [String: Any]?) throws -> Canonical.Email {
 
 func runSign(email rawEmail: Canonical.Email, arguments: [String]) throws -> [String: Any] {
     let state = HelperState.load()
-    guard let kid = state.kid, state.mode == enrollmentMode else {
-        throw HelperFailure(code: "not_enrolled", message: "run: InklinePresenceHelper enroll")
+    guard let kid = state.kid, let mode = state.mode, let attestKeyId = state.attestKeyId else {
+        // Enrolled under the retired unattested policy (or not at all):
+        // signing requires an attested enrollment, which requires macOS 27+.
+        if AppAttest().isSupported {
+            throw HelperFailure(code: "not_enrolled", message: "run: InklinePresenceHelper enroll")
+        }
+        throw HelperFailure(
+            code: "os_upgrade_required",
+            message: "Inkline requires macOS 27 or later (App Attest)."
+        )
     }
+    let attest = try requireAppAttest()
     let notary = try notaryClient(arguments)
 
     // Canonicalize once; render and sign exactly this.
@@ -183,6 +244,14 @@ func runSign(email rawEmail: Canonical.Email, arguments: [String]) throws -> [St
 
     let pub = B64.encode(try PresenceKey.publicKeyRaw(try PresenceKey.load()))
 
+    // A fresh App Attest assertion over the same payload the presence key
+    // just signed (two keys, one hash). No extra user prompt — the biometric
+    // gate already happened above.
+    let assertion = B64.encode(try attest.assertion(
+        keyId: attestKeyId,
+        clientDataHash: Data(SHA256.hash(data: Presence.assertClientData(payload)))
+    ))
+
     let receipt = try notary.cosign(
         payload: [
             "v": 1,
@@ -193,15 +262,17 @@ func runSign(email rawEmail: Canonical.Email, arguments: [String]) throws -> [St
             "kid": payload.kid,
         ],
         pub: pub,
-        sig: B64.encode(sig)
+        sig: B64.encode(sig),
+        assertion: assertion
     )
 
-    return ["ok": true, "receipt": receipt, "contentHash": contentHash, "kid": kid, "mode": enrollmentMode]
+    return ["ok": true, "receipt": receipt, "contentHash": contentHash, "kid": kid, "mode": mode]
 }
 
 func runReset() throws -> [String: Any] {
     try PresenceKey.destroy()
     var state = HelperState.load()
+    state.attestKeyId = nil
     state.kid = nil
     state.mode = nil
     try state.save()
