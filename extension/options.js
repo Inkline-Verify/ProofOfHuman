@@ -10,7 +10,10 @@
     });
     chrome.runtime.sendMessage({ type: 'inkline-status' }, (r) => {
       const ok = !chrome.runtime.lastError && r && r.ok;
-      if (ok && r.enrolled) {
+      if (ok && r.capable === false) {
+        dot.className = 'dot bad';
+        text.textContent = 'Inkline requires macOS 27 or later. Upgrade to enable the stamp. Your emails send normally without it.';
+      } else if (ok && r.enrolled) {
         dot.className = 'dot ok'; text.textContent = 'connected, enrolled';
       } else if (ok) {
         dot.className = 'dot bad'; text.textContent = 'helper found, not enrolled.'; setup.hidden = false;

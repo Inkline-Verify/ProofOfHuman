@@ -27,6 +27,9 @@ import {
 import { emailContentHash } from './canonical.js';
 
 export const TAG_PRESENCE = 'inkline.presence.v1\u0000';
+export const TAG_ASSERT = 'inkline.assert.v1\u0000';
+export const TAG_ENROLL_ATTEST = 'inkline.attest.v1\u0000';
+export const TAG_ENROLL_BIND = 'inkline.enroll.v1\u0000';
 export const TAG_NOTARY = 'inkline.notary.v1\u0000';
 
 export const PAYLOAD_ACTION = 'email';
@@ -36,8 +39,33 @@ export function presenceSignInput(payload) {
   return concatBytes(utf8(TAG_PRESENCE), utf8(cjson(payload)));
 }
 
-export function notarySignInput({ iat, payload, pub, sig }) {
-  return concatBytes(utf8(TAG_NOTARY), utf8(cjson({ iat, payload, pub, sig })));
+// tier is present only in attested-era receipts; including it in the signed
+// bytes means it cannot be stripped or altered without breaking the notary
+// signature. Receipts issued before tiers existed omit it and verify with
+// the original four-field shape.
+export function notarySignInput({ iat, payload, pub, sig, tier }) {
+  const body = { iat, payload, pub, sig };
+  if (tier !== undefined) body.tier = tier;
+  return concatBytes(utf8(TAG_NOTARY), utf8(cjson(body)));
+}
+
+// Client data covered by the per-send App Attest assertion (attested tier).
+export function assertClientData(payload) {
+  return concatBytes(utf8(TAG_ASSERT), utf8(cjson(payload)));
+}
+
+// Client data hash covered by the one-time App Attest key attestation.
+export async function enrollAttestClientDataHash(challengeB64u) {
+  return sha256(concatBytes(utf8(TAG_ENROLL_ATTEST), b64uDecode(challengeB64u)));
+}
+
+// Client data covered by the enrollment assertion that binds the presence
+// public key to the attested App Attest key.
+export function enrollBindClientData(challengeB64u, presencePubB64u) {
+  return concatBytes(
+    utf8(TAG_ENROLL_BIND),
+    utf8(cjson({ challenge: challengeB64u, pub: presencePubB64u }))
+  );
 }
 
 export async function kidOfPub(pubB64u) {
@@ -104,7 +132,7 @@ export async function verifyReceipt({ receipt, email, notaryPub }) {
     notaryKid: false,
     notarySig: false,
   };
-  const fail = (error) => ({ ok: false, checks, error, payload: null });
+  const fail = (error) => ({ ok: false, checks, error, payload: null, tier: null });
 
   let r;
   try {
@@ -120,7 +148,8 @@ export async function verifyReceipt({ receipt, email, notaryPub }) {
     typeof n !== 'object' ||
     typeof n.kid !== 'string' ||
     typeof n.sig !== 'string' ||
-    !Number.isSafeInteger(n.iat)
+    !Number.isSafeInteger(n.iat) ||
+    (n.tier !== undefined && typeof n.tier !== 'string')
   ) {
     return fail('receipt: bad notary block');
   }
@@ -176,13 +205,14 @@ export async function verifyReceipt({ receipt, email, notaryPub }) {
     payload: r.payload,
     pub: r.pub,
     sig: r.sig,
+    tier: n.tier,
   });
   if (!(await p256Verify(notaryPubRaw, notarySigRaw, signedBytes))) {
     return fail('notary: signature invalid');
   }
   checks.notarySig = true;
 
-  return { ok: true, checks, error: null, payload: r.payload };
+  return { ok: true, checks, error: null, payload: r.payload, tier: n.tier ?? null };
 }
 
 export { bytesEqual };

@@ -1,13 +1,23 @@
 // The Inkline notary: the single hosted component.
 //
-// It never sees email content — only content hashes, public keys, and
-// signatures. Single trust tier, "enclave-unattested": the helper's Secure
-// Enclave key is registered on an honor basis (attested: false — nothing
-// cryptographically proves to the notary that the key lives in an enclave).
-// Its co-signature on a receipt means:
-//   - the presence key was previously enrolled with this notary,
+// It never sees email content — only content hashes, public keys,
+// signatures, and attestation material. One trust tier, enforced here:
+//
+//   enclave-attested — enrollment MUST carry a valid Apple App Attest chain
+//   proving the key came from a genuine Secure Enclave inside the signed
+//   helper, and every co-signature additionally verifies a fresh App Attest
+//   assertion (strictly increasing counter) over the same payload.
+//
+// Enrollments made before this policy (tier enclave-unattested) are kept in
+// the registry for the historical record but are INACTIVE: they receive no
+// nonces and no co-signatures. Their old receipts remain verifiable.
+//
+// A co-signature on a receipt means:
+//   - the presence key was previously enrolled with this notary at the tier
+//     named in the receipt's notary.tier field (covered by the signature),
 //   - the server-issued nonce was live, single-use, and bound to that key,
-//   - the presence signature over the payload verified.
+//   - the presence signature over the payload verified,
+//   - for the attested tier, the per-send assertion verified.
 //
 // Endpoints (JSON in, JSON out):
 //   GET  /v1/info              -> { v, tier, notary: { pub, kid } }
@@ -20,7 +30,11 @@ import http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { Store } from './store.js';
 import { b64uEncode, b64uDecode } from '../../shared/b64.js';
+import { verifyAttestation, verifyAssertion } from './appattest.js';
 import {
+  assertClientData,
+  enrollAttestClientDataHash,
+  enrollBindClientData,
   encodeReceipt,
   kidOfPub,
   notarySignInput,
@@ -32,12 +46,16 @@ import {
 const subtle = globalThis.crypto.subtle;
 
 class HttpError extends Error {
-  constructor(status, code, message) {
+  constructor(status, code, message, extra = null) {
     super(message);
     this.status = status;
     this.code = code;
+    this.extra = extra;
   }
 }
+
+const ATTESTATION_REQUIRED = (detail) =>
+  new HttpError(403, 'attestation_required', detail, { min_os: 'macOS 27' });
 
 async function loadNotaryKey(store) {
   if (!store.data.notaryKey) {
@@ -88,17 +106,26 @@ function requirePub(pubB64u) {
 }
 
 export const TIER = 'enclave-unattested';
+export const TIER_ATTESTED = 'enclave-attested';
 
 // config:
 //   storePath    JSON state file, or null for in-memory
 //   nonceTtlMs, challengeTtlMs, iatSkewSec
 export async function createNotary(config = {}) {
   const {
+    // appId ("TEAMID.bundle.id" of the signed helper) and rootPem (trusted
+    // App Attest root CA) enable the enclave-attested tier; without both,
+    // the notary serves the unattested tier only.
+    appId = null,
+    rootPem = null,
     storePath = null, nonceTtlMs = 60_000, challengeTtlMs = 120_000, iatSkewSec = 120,
     // Abuse limits: per-IP token bucket and a hard cap on stored enrollments.
     rateLimit = { windowMs: 60_000, max: 60 },
     maxRegistry = 100_000,
   } = config;
+  if (!appId || !rootPem) {
+    throw new Error('notary: appId and rootPem are required (attestation is mandatory)');
+  }
 
   // Per-IP sliding-window rate limiter (in-memory; fronting proxy/CDN should
   // be the first line of defense, this is the backstop).
@@ -121,8 +148,9 @@ export async function createNotary(config = {}) {
   const routes = {
     'GET /v1/info': async () => ({
       v: 1,
-      tier: TIER,
-      attested: false,
+      tier: TIER_ATTESTED,
+      tiers: [TIER_ATTESTED],
+      appId,
       notary: { pub: notaryKey.pub, kid: notaryKey.kid },
     }),
 
@@ -137,31 +165,75 @@ export async function createNotary(config = {}) {
 
     'POST /v1/enroll': async (body) => {
       store.gc();
-      const { challenge, pub } = body;
+      const { challenge, pub, keyId, attestation, binding } = body;
       const ch = typeof challenge === 'string' ? store.data.challenges[challenge] : undefined;
       if (!ch || ch.exp < Date.now()) {
         throw new HttpError(403, 'challenge_invalid', 'unknown or expired challenge');
       }
       delete store.data.challenges[challenge];
 
-      requirePub(pub);
-      const kid = await kidOfPub(pub);
       if (Object.keys(store.data.registry).length >= maxRegistry) {
         throw new HttpError(503, 'registry_full', 'enrollment is temporarily closed');
       }
+      requirePub(pub);
+      const kid = await kidOfPub(pub);
       if (store.data.registry[kid]) {
         throw new HttpError(409, 'already_enrolled', 'this presence key is already enrolled');
       }
 
+      const wantsAttested = keyId !== undefined || attestation !== undefined || binding !== undefined;
+      if (!wantsAttested) {
+        throw ATTESTATION_REQUIRED('enrollment requires Apple App Attest; Inkline needs macOS 27 or later');
+      }
+
+      const keyIdBytes = decodeB64uField(keyId, 'keyId', 32);
+      const attestationBytes = decodeB64uField(attestation, 'attestation');
+      const bindingBytes = decodeB64uField(binding, 'binding');
+
+      // 1) The App Attest key is genuine: Apple-rooted chain, this app.
+      //    Both Apple environments are accepted; which one is recorded.
+      const clientDataHash = await enrollAttestClientDataHash(challenge);
+      let attested;
+      try {
+        attested = verifyAttestation({
+          attestation: attestationBytes,
+          clientDataHash,
+          keyId: keyIdBytes,
+          appId,
+          rootPem,
+        });
+      } catch (err) {
+        throw new HttpError(403, 'attestation_invalid', err.message);
+      }
+
+      // 2) The attested key vouches for this exact presence public key.
+      let bound;
+      try {
+        bound = verifyAssertion({
+          assertion: bindingBytes,
+          clientData: enrollBindClientData(challenge, pub),
+          appId,
+          attestPubSpki: attested.attestPubSpki,
+          prevCounter: 0,
+        });
+      } catch (err) {
+        throw new HttpError(403, 'binding_invalid', err.message);
+      }
+
+      console.log(`enroll: attested key ${kid} (App Attest environment: ${attested.environment})`);
       store.data.registry[kid] = {
         pub,
-        tier: TIER,
-        attested: false,
+        keyId,
+        tier: TIER_ATTESTED,
+        attested: true,
+        attestPubSpki: b64uEncode(attested.attestPubSpki),
+        counter: bound.counter,
+        environment: attested.environment,
         enrolledAt: Date.now(),
         status: 'active',
       };
       store.save();
-      return { kid, tier: TIER, attested: false };
+      return { kid, tier: TIER_ATTESTED, attested: true, environment: attested.environment };
     },
 
     'POST /v1/nonce': async (body) => {
@@ -169,6 +241,9 @@ export async function createNotary(config = {}) {
       const entry = typeof body.kid === 'string' ? store.data.registry[body.kid] : undefined;
       if (!entry || entry.status !== 'active') {
         throw new HttpError(403, 'not_enrolled', 'unknown or inactive presence key');
+      }
+      if (entry.attested !== true) {
+        throw ATTESTATION_REQUIRED('this key was enrolled before hardware attestation became mandatory; re-enroll on macOS 27 or later');
       }
       const nonce = b64uEncode(randomBytes(32));
       const exp = Date.now() + nonceTtlMs;
@@ -179,13 +254,16 @@ export async function createNotary(config = {}) {
 
     'POST /v1/cosign': async (body) => {
       store.gc();
-      const { payload, pub, sig } = body;
+      const { payload, pub, sig, assertion } = body;
       const payloadError = validatePayload(payload);
       if (payloadError) throw new HttpError(400, 'bad_payload', payloadError);
 
       const entry = store.data.registry[payload.kid];
       if (!entry || entry.status !== 'active') {
         throw new HttpError(403, 'not_enrolled', 'unknown or inactive presence key');
+      }
+      if (entry.attested !== true) {
+        throw ATTESTATION_REQUIRED('this key was enrolled before hardware attestation became mandatory; re-enroll on macOS 27 or later');
       }
       if (pub !== entry.pub) {
         throw new HttpError(403, 'key_mismatch', 'pub does not match the enrolled key');
@@ -213,18 +291,38 @@ export async function createNotary(config = {}) {
         throw new HttpError(403, 'presence_invalid', 'presence signature does not verify');
       }
 
+      // A fresh App Attest assertion over the same payload; its counter must
+      // be strictly increasing.
+      const tier = entry.tier;
+      {
+        const assertionBytes = decodeB64uField(assertion, 'assertion');
+        let asserted;
+        try {
+          asserted = verifyAssertion({
+            assertion: assertionBytes,
+            clientData: assertClientData(payload),
+            appId,
+            attestPubSpki: b64uDecode(entry.attestPubSpki),
+            prevCounter: entry.counter,
+          });
+        } catch (err) {
+          throw new HttpError(403, 'assertion_invalid', err.message);
+        }
+        entry.counter = asserted.counter;
+      }
+
       // All checks passed: burn the nonce, co-sign.
       delete store.data.nonces[payload.nonce];
       store.save();
 
       const iat = nowSec;
-      const notarySig = await notaryKey.sign(notarySignInput({ iat, payload, pub, sig }));
+      const notarySig = await notaryKey.sign(notarySignInput({ iat, payload, pub, sig, tier }));
       const receipt = encodeReceipt({
         v: 1,
         payload,
         pub,
         sig,
-        notary: { iat, kid: notaryKey.kid, sig: b64uEncode(notarySig) },
+        notary: { iat, kid: notaryKey.kid, sig: b64uEncode(notarySig), tier },
       });
       return { receipt };
     },
@@ -249,8 +347,9 @@ export async function createNotary(config = {}) {
       const status = err instanceof HttpError ? err.status : 500;
       const code = err instanceof HttpError ? err.code : 'internal';
       const message = err instanceof HttpError ? err.message : 'internal error';
+      const extra = err instanceof HttpError && err.extra ? err.extra : {};
       res.statusCode = status;
-      res.end(JSON.stringify({ error: { code, message } }));
+      res.end(JSON.stringify({ error: { code, message, ...extra } }));
     }
   });
 

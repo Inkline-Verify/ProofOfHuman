@@ -4,12 +4,19 @@
 <!-- Minimum entitlements for persisting a Secure Enclave key in the keychain
      (without them SecKeyCreateRandomKey fails with errSecMissingEntitlement,
      -34018). TEAMID is substituted by scripts/build-app.sh from the signing
-     identity. No App Attest entitlement: single enclave-unattested tier. -->
+     identity. The App Attest opt-in entitlement matches the provisioning
+     profile exactly: an array containing the literal string "CDhash" (not a
+     boolean). Do NOT add appattest-environment - the profile does not grant
+     it, and an ungranted restricted entitlement breaks signing/launch. -->
 <dict>
     <key>com.apple.application-identifier</key>
     <string>TEAMID.com.inkline.presence-helper</string>
     <key>com.apple.developer.team-identifier</key>
     <string>TEAMID</string>
+    <key>com.apple.developer.devicecheck.app-attest-opt-in</key>
+    <array>
+        <string>CDhash</string>
+    </array>
     <key>keychain-access-groups</key>
     <array>
         <string>TEAMID.com.inkline.presence-helper</string>

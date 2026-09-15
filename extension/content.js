@@ -190,7 +190,11 @@
       response = { ok: false, error: { code: 'messaging', message: String(err) } };
     }
 
-    if (response && response.ok && response.receipt) {
+    // Stamp policy: a stamp exists ONLY behind a real attested receipt.
+    // ok + receipt + mode enclave-attested, or the email goes out exactly
+    // as written — no footer, no markup, nothing. The mode check also
+    // keeps pre-0.2.0 helpers (unattested tier) from stamping.
+    if (response && response.ok && response.receipt && response.mode === 'enclave-attested') {
       injectFooter(extracted.bodyEl, response.receipt);
       console.info('[inkline] receipt attached (' + (response.mode || 'unknown mode') + ')');
       try {

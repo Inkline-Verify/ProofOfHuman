@@ -1,14 +1,17 @@
-// Non-secret local state: the enrolled kid, the notary URL, and the
-// enrollment mode. The key itself lives in the Secure Enclave — this file
-// holds only identifiers.
+// Non-secret local state: the enrolled kid, the notary URL, the enrollment
+// mode, and (attested tier) the App Attest key identifier. Keys themselves
+// live in the Secure Enclave / DeviceCheck subsystem — this file holds only
+// identifiers.
 
 import Foundation
 
 struct HelperState: Codable {
     var kid: String?
     var notaryURL: String?
-    // Always "enclave-unattested" — the single supported tier.
+    // "enclave-attested" (App Attest, macOS 27+) or "enclave-unattested".
     var mode: String?
+    // Apple's identifier for the App Attest key; attested tier only.
+    var attestKeyId: String?
 
     static var fileURL: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

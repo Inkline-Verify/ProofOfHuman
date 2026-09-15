@@ -45,14 +45,15 @@ Repository layout:
 ## What a receipt proves — honestly
 
 A valid receipt proves the enrolled key signed exactly this content after a
-Touch ID check, witnessed by the notary. The current tier is
-**enclave-unattested**: for legitimately installed helpers the key is
-hardware-bound and every signature required a live biometric, but the key's
-Secure Enclave provenance cannot yet be *proven* to a skeptic. Apple's App
-Attest is available for native Mac apps since macOS 27; the notary-side
-verification for it was built and tested in this project's development
-history and is being restored as the attested tier. A receipt does not prove who composed the words, only that a person
-approved them.
+Touch ID check, witnessed by the notary. There is one tier and it is
+mandatory: **enclave-attested**. Apple's App Attest (macOS 27 or later)
+certifies at enrollment that the signing key was generated inside a genuine
+Secure Enclave in the signed helper, and every stamp carries a fresh
+per-send attestation that the notary verifies before co-signing. The notary
+refuses enrollment and co-signatures without it — there is no weaker path.
+Receipts issued before this policy still verify and are labeled as legacy
+on the verify page. A receipt does not prove who composed the words, only
+that a person approved them.
 
 ## Install
 

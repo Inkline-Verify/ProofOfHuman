@@ -21,7 +21,8 @@ struct NotaryClient {
     let baseURL: URL
 
     struct Info {
-        let tier: String
+        let tier: String        // compat field; the notary's baseline tier
+        let tiers: [String]     // every tier this notary serves
         let pub: String
         let kid: String
     }
@@ -33,7 +34,8 @@ struct NotaryClient {
               let pub = notary["pub"] as? String,
               let kid = notary["kid"] as? String
         else { throw NotaryError.malformed("info") }
-        return Info(tier: tier, pub: pub, kid: kid)
+        let tiers = body["tiers"] as? [String] ?? [tier]
+        return Info(tier: tier, tiers: tiers, pub: pub, kid: kid)
     }
 
     func enrollChallenge() throws -> String {
@@ -44,12 +46,21 @@ struct NotaryClient {
         return challenge
     }
 
-    // Registers the presence public key. The notary records it as
-    // attested: false (single tier: enclave-unattested).
-    func enroll(challenge: String, pub: String) throws -> String {
-        let body = try request("POST", "/v1/enroll", ["challenge": challenge, "pub": pub])
+    // Attested enrollment: the App Attest material proves to the notary that
+    // the key came from a genuine Secure Enclave inside the signed helper.
+    // Returns the kid and the Apple environment the notary verified against.
+    func enrollAttested(
+        challenge: String, keyId: String, attestation: String, pub: String, binding: String
+    ) throws -> (kid: String, environment: String?) {
+        let body = try request("POST", "/v1/enroll", [
+            "challenge": challenge,
+            "keyId": keyId,
+            "attestation": attestation,
+            "pub": pub,
+            "binding": binding,
+        ])
         guard let kid = body["kid"] as? String else { throw NotaryError.malformed("enroll") }
-        return kid
+        return (kid, body["environment"] as? String)
     }
 
     func nonce(kid: String) throws -> String {
@@ -58,8 +69,10 @@ struct NotaryClient {
         return nonce
     }
 
-    func cosign(payload: [String: Any], pub: String, sig: String) throws -> String {
-        let body = try self.request("POST", "/v1/cosign", ["payload": payload, "pub": pub, "sig": sig])
+    func cosign(payload: [String: Any], pub: String, sig: String, assertion: String? = nil) throws -> String {
+        var req: [String: Any] = ["payload": payload, "pub": pub, "sig": sig]
+        if let assertion { req["assertion"] = assertion }
+        let body = try self.request("POST", "/v1/cosign", req)
         guard let receipt = body["receipt"] as? String else { throw NotaryError.malformed("cosign") }
         return receipt
     }

@@ -16,10 +16,14 @@ async function check() {
   });
   const helperUp = !!status.ok;
   const enrolled = helperUp && !!status.enrolled;
+  // capable === false: the helper runs but this macOS cannot attest
+  // (App Attest needs macOS 27+). One clear message, no partial setup.
+  const needsUpgrade = helperUp && status.capable === false;
+  document.getElementById('os-upgrade').hidden = !needsUpgrade;
   setMark('step-helper', helperUp);
-  setMark('step-enroll', helperUp ? enrolled : false);
+  setMark('step-enroll', helperUp && !needsUpgrade ? enrolled : false);
   document.getElementById('helper-fix').hidden = helperUp;
-  document.getElementById('enroll-fix').hidden = !helperUp || enrolled;
+  document.getElementById('enroll-fix').hidden = !helperUp || enrolled || needsUpgrade;
 
   chrome.storage.sync.get('stampStyle', (r) => {
     setMark('step-style', r && r.stampStyle ? true : null);

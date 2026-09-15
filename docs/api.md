@@ -27,7 +27,7 @@ Base: your deployment of `notary/` (Node, zero deps). All bodies JSON.
 ### `GET /v1/info`
 Trust policy of this notary.
 ```json
-{ "v": 1, "tier": "enclave-unattested", "attested": false,
+{ "v": 1, "tier": "enclave-attested", "tiers": ["enclave-attested"],
   "notary": { "pub": "<b64url P-256>", "kid": "<b64url sha256(pub)>" } }
 ```
 
@@ -36,8 +36,12 @@ Single-use, 2-minute TTL.
 
 ### `POST /v1/enroll`
 Registers a presence public key.
-- Unattested tier: `{ "challenge", "pub" }`
-- Attested tier (not served by the current notary yet; requires Mac App Attest, macOS 27+): `{ "challenge", "keyId", "attestation", "pub", "binding" }`
+- `{ "challenge", "keyId", "attestation", "pub", "binding" }` — attestation
+  is mandatory (Mac App Attest, macOS 27+). A bare `{ "challenge", "pub" }`
+  enrollment is refused with
+  `{ "error": { "code": "attestation_required", "min_os": "macOS 27" } }`;
+  the same error refuses nonces and co-signs for keys enrolled before the
+  policy.
   where `attestation` is an Apple App Attest object over
   `sha256("inkline.attest.v1\0" || challenge)` and `binding` an assertion over
   `"inkline.enroll.v1\0" || cjson({challenge, pub})`.
