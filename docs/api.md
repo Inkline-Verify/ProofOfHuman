@@ -14,8 +14,8 @@ Three roles:
 
 - **Client** (your app): shows the user the exact content, asks the OS for a
   biometric-gated signature over its hash.
-- **Notary** (Inkline): verifies key enrollment (App Attest once available on
-  the platform), freshness (nonce), and the presence signature; co-signs and
+- **Notary** (Inkline): verifies key enrollment (App Attest where the platform
+  supports it), freshness (nonce), and the presence signature; co-signs and
   issues a receipt. Never sees content — hashes only.
 - **Verifier** (anyone): checks the receipt offline against the notary's
   public key and the content itself. No account, no network call.
@@ -37,7 +37,7 @@ Single-use, 2-minute TTL.
 ### `POST /v1/enroll`
 Registers a presence public key.
 - Unattested tier: `{ "challenge", "pub" }`
-- Attested tier (planned — not served by the current notary; requires Mac App Attest, macOS 27+): `{ "challenge", "keyId", "attestation", "pub", "binding" }`
+- Attested tier (not served by the current notary yet; requires Mac App Attest, macOS 27+): `{ "challenge", "keyId", "attestation", "pub", "binding" }`
   where `attestation` is an Apple App Attest object over
   `sha256("inkline.attest.v1\0" || challenge)` and `binding` an assertion over
   `"inkline.enroll.v1\0" || cjson({challenge, pub})`.
