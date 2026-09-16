@@ -2,8 +2,8 @@
 
 ## Requirements
 
-- macOS 27+ on a Mac with Touch ID (fingerprint enrolled) — App Attest,
-  which every stamp requires, is unavailable on earlier macOS
+- A Mac with Touch ID (fingerprint enrolled). The current release (v0.1.0)
+  runs on macOS 13+. The next release requires macOS 27+ for App Attest.
 - Chrome or a Chromium browser, Gmail
 - For building the helper yourself instead of downloading: Xcode command line
   tools plus an Apple Development certificate *and provisioning profile* for

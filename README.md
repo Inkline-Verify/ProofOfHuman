@@ -45,15 +45,27 @@ Repository layout:
 ## What a receipt proves — honestly
 
 A valid receipt proves the enrolled key signed exactly this content after a
-Touch ID check, witnessed by the notary. There is one tier and it is
-mandatory: **enclave-attested**. Apple's App Attest (macOS 27 or later)
-certifies at enrollment that the signing key was generated inside a genuine
-Secure Enclave in the signed helper, and every stamp carries a fresh
-per-send attestation that the notary verifies before co-signing. The notary
-refuses enrollment and co-signatures without it — there is no weaker path.
-Receipts issued before this policy still verify and are labeled as legacy
-on the verify page. A receipt does not prove who composed the words, only
-that a person approved them.
+Touch ID check, witnessed by the notary. A receipt does not prove who
+composed the words, only that a person approved them.
+
+**What ships today (release v0.1.0, macOS 13+):** the tier is
+*enclave-unattested*. The key is created in the Secure Enclave behind Touch
+ID, but the notary cannot prove that to a skeptic, so software could enroll
+a key and obtain a receipt. Every receipt is labeled "not hardware-attested"
+on the verify page. Treat a stamp as a strong signal, not proof against a
+determined forger.
+
+**What this branch builds (next release, macOS 27+):** the tier becomes
+*enclave-attested* and mandatory. Apple's App Attest certifies at enrollment
+that the signing key was generated inside a genuine Secure Enclave in the
+signed helper, and every stamp carries a fresh per-send attestation that the
+notary verifies before co-signing; the notary refuses enrollment and
+co-signatures without it. Receipts issued before that cutover keep verifying
+and are labeled legacy. The cutover happens when the next helper release
+ships and the production notary enforces the policy — not before.
+
+The hosted notary and approval API run from a separate service repository;
+`notary/` here is the reference implementation of the receipt protocol.
 
 ## Install
 
