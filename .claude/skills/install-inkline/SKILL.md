@@ -13,7 +13,7 @@ broken, emails simply send WITHOUT a stamp and the reason appears as
 
 ## Requirements (check first)
 
-- macOS 13+ on a Mac with Touch ID and a fingerprint enrolled
+- macOS 27 or later on a Mac with Touch ID and a fingerprint enrolled (App Attest requires it)
 - Chrome (or Chromium) with Gmail
 - Do NOT build the helper from source: an ad-hoc build cannot create Secure
   Enclave keys (fails with errSecMissingEntitlement, -34018). Always use the

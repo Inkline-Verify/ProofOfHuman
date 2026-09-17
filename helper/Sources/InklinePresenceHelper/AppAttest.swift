@@ -1,7 +1,7 @@
 // Apple App Attest client — the hardware-provenance half of the attested
 // tier. On macOS 27+ with a provisioned, signed helper, DCAppAttestService
 // reports isSupported and the enclave can prove key provenance to the
-// notary; everywhere else the helper stays on the enclave-unattested tier.
+// notary; everywhere else the helper refuses to enroll or sign (no weaker tier).
 //
 // The service's async callbacks are bridged to synchronous calls because the
 // helper's command flow is synchronous end to end.

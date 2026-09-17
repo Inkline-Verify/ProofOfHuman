@@ -4,10 +4,11 @@
 //   - The presence signature comes from a Secure Enclave P-256 key that only
 //     signs after a live biometric match (biometryCurrentSet).
 //   - The notary co-signature attests that, at issuance time, the notary
-//     verified: the presence key was previously enrolled (tier
-//     "enclave-unattested" — key provenance is not hardware-attested), the
-//     server-issued nonce was live and single-use, and the presence
-//     signature checked out.
+//     verified: the presence key was previously enrolled at the tier named
+//     in the notary block ("enclave-attested": Apple App Attest certified
+//     the key's Secure Enclave provenance; receipts without a tier predate
+//     attestation), the server-issued nonce was live and single-use, and
+//     the presence signature checked out.
 //   - A recipient verifies both signatures offline against the notary's
 //     published public key plus the email content itself. No network calls.
 //
