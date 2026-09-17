@@ -120,9 +120,10 @@
 
 <p class="note">
   A valid receipt proves the enrolled presence key signed exactly this email
-  after a Touch ID check on the signer's Mac. The key is not hardware-attested:
-  its Secure Enclave provenance is on the honor system. It does not prove who
-  composed the words. Fields are canonicalized before hashing, so transport
+  after a Touch ID check on the signer's Mac. Today's stamps also carry
+  Apple's certification that the key was created inside a genuine Secure
+  Enclave; receipts from before that are labeled with their era. It does not
+  prove who composed the words. Fields are canonicalized before hashing, so transport
   rewrites don't break verification — any change to the words does. BCC is
   never part of the signed content: it would reveal hidden recipients.
   <a href="https://github.com/Inkline-Verify/ProofOfHuman" target="_blank" rel="noreferrer">source</a>
