@@ -59,6 +59,15 @@ them as issued before hardware attestation became part of every stamp.
 The hosted notary and approval API run from a separate service repository;
 `notary/` here is the reference implementation of the receipt protocol.
 
+## Verify receipts in your own code
+
+```sh
+npm install inkline-verify
+```
+`packages/inkline-verify` publishes the same `shared/` modules the notary
+and the public verify page use: `verify(receipt)` for approval receipts,
+`verify(receipt, { email })` for stamps. Offline, no dependencies.
+
 ## Install
 
 See [INSTALL.md](INSTALL.md). Short version: download the signed helper from
