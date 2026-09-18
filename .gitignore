@@ -12,3 +12,4 @@ dist/
 *.zip
 .vercel
 .vercel/
+packages/inkline-verify/shared/

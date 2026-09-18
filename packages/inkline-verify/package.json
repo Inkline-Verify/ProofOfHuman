@@ -1,0 +1,17 @@
+{
+  "name": "inkline-verify",
+  "version": "0.1.0",
+  "description": "Offline verification of Inkline receipts: email stamps (v1) and action approvals (v2, Touch ID or passkey). No network, no dependencies.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./index.js",
+  "exports": { ".": "./index.js" },
+  "files": ["index.js", "shared/", "README.md"],
+  "scripts": {
+    "prepack": "rm -rf shared && cp -R ../../shared ./shared",
+    "test": "node --test test.mjs"
+  },
+  "repository": { "type": "git", "url": "https://github.com/Inkline-Verify/ProofOfHuman.git", "directory": "packages/inkline-verify" },
+  "keywords": ["inkline", "webauthn", "passkey", "receipt", "proof-of-human", "approval"],
+  "engines": { "node": ">=20" }
+}
