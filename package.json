@@ -12,7 +12,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test notary/test/*.test.js",
+    "test": "node --test notary/test/*.test.js verifier/*.test.mjs",
     "vectors": "node scripts/gen-vectors.mjs",
     "notary": "node notary/src/main.js"
   }

@@ -140,12 +140,24 @@
     });
   } catch {}
 
-  function injectFooter(bodyEl, receipt) {
+  // The Verify link carries the receipt plus the signed headers in the URL
+  // fragment (never sent to any server), so a recipient only has to paste
+  // the message text. The receipt is base64url, so "&" safely separates it.
+  function verifyLink(receipt, email) {
+    const q = new URLSearchParams();
+    q.set('from', email.from);
+    q.set('to', email.to.join(','));
+    if (email.cc.length) q.set('cc', email.cc.join(','));
+    q.set('subject', email.subject);
+    return INKLINE_CONFIG.VERIFY_URL + '#' + receipt + '&' + q.toString();
+  }
+
+  function injectFooter(bodyEl, receipt, email) {
     const footer = document.createElement('div');
     footer.setAttribute('data-inkline', '1');
     const spacer = document.createElement('div');
     spacer.appendChild(document.createElement('br'));
-    const line = buildStampLine(stampStyle, INKLINE_CONFIG.VERIFY_URL + '#' + receipt);
+    const line = buildStampLine(stampStyle, verifyLink(receipt, email));
 
     footer.appendChild(spacer);
     footer.appendChild(line);
@@ -195,7 +207,7 @@
     // as written — no footer, no markup, nothing. The mode check also
     // keeps pre-0.2.0 helpers (unattested tier) from stamping.
     if (response && response.ok && response.receipt && response.mode === 'enclave-attested') {
-      injectFooter(extracted.bodyEl, response.receipt);
+      injectFooter(extracted.bodyEl, response.receipt, extracted.email);
       console.info('[inkline] receipt attached (' + (response.mode || 'unknown mode') + ')');
       try {
         chrome.storage.local.set({ lastStamp: { at: Date.now(), mode: response.mode || null } });

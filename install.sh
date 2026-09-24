@@ -15,7 +15,7 @@
 #   6. enrolls this Mac with the notary (creates the Secure Enclave key).
 set -eu
 
-VERSION="${INKLINE_VERSION:-0.2.0}"
+VERSION="${INKLINE_VERSION:-0.2.1}"
 REPO="Inkline-Verify/ProofOfHuman"
 NOTARY_URL="${INKLINE_NOTARY_URL:-https://inkline-notary-production.up.railway.app}"
 # SHA-256 of dist/InklinePresenceHelper.zip for VERSION. Update on every

@@ -48,7 +48,7 @@ A valid receipt proves the enrolled key signed exactly this content after a
 Touch ID check, witnessed by the notary. A receipt does not prove who
 composed the words, only that a person approved them.
 
-**What ships today (v0.2.0, macOS 27+):** the tier is *enclave-attested* and
+**What ships today (v0.2.1, macOS 27+):** the tier is *enclave-attested* and
 mandatory. Apple's App Attest certifies at enrollment that the signing key
 was created inside a genuine Secure Enclave in the signed helper, and every
 stamp carries a fresh per-send attestation that the notary verifies before

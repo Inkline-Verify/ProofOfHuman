@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Inkline",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Proof of Human for Gmail: approve each email with Touch ID and attach an offline-verifiable receipt.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9+CfJYdgMdNudDOb0ot6LXi0eQBohyo8AUBS+70WVPyyhLYCdE+kwHZ0ZfzPZPjI47FSrDYUEFxBrSGYWYt99axQNkRreWEUHC8VdoC92wInT1vAW5k8c4ln0urUnpTDyra07ijjlv0a9jzDZXc/DT1WlKN8k3tGZMJimTgnXb/McnVHN9ll7ra12ISHQYnSIXPbolerCXBCMp1hc+m4FidfRk/+ogL2r4TMX/9gV1d1v/4UikavW4XdNvqstEtvkWyDoAuwGj0pwVc07S/pk7y+Hy+vgp/ltS+ZRUFM73VLCeGvIccnrkR4cLwJetpA+AI607PP3oPIMJqnbP/mkQIDAQAB",
   "icons": {

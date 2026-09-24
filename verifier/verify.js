@@ -3,6 +3,7 @@
 // alongside shared/ (e.g. `npx serve` from the repository root).
 
 import { verifyReceipt } from '../shared/receipt.js';
+import { parseFragment, cleanPastedBody, INVISIBLE_RE } from './paste.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,8 +28,14 @@ function splitAddresses(value) {
 // (which never reaches any server). Pre-fill it, and pre-fill the deploy's
 // default notary key.
 function prefill() {
-  const fragment = window.location.hash.slice(1);
-  if (fragment) $('receipt').value = fragment;
+  // Since extension 0.2.1 the link also carries the signed headers, so the
+  // recipient only pastes the message text. Older links carry the receipt
+  // alone and the fields stay editable either way.
+  const link = parseFragment(window.location.hash);
+  if (link.receipt) $('receipt').value = link.receipt;
+  for (const key of ['from', 'to', 'cc', 'subject']) {
+    if (link[key] !== undefined) $(key).value = link[key];
+  }
 
   const config = window.INKLINE_VERIFIER_CONFIG ?? {};
   if (config.NOTARY_PUB && !$('notaryPub').value) {
@@ -49,18 +56,10 @@ $('verify').addEventListener('click', async () => {
   const result = $('result');
   result.textContent = 'Verifying…';
 
-  // The received email contains the Inkline footer, but the footer was
-  // injected AFTER signing, so it is not part of the signed content. Drop
-  // any footer line so pasting the message exactly as received verifies.
-  // Mail clients and clipboards can carry invisible format characters
-  // (zero-width spaces and the like). The extension strips them before
-  // signing, so strip them from pasted input too.
-  const INVISIBLE_RE = /[\u00ad\u061c\u180e\u200b\u200c\u200e\u200f\u2060-\u2064\u206a-\u206f\ufeff]/g;
-  const body = $('body').value
-    .replace(INVISIBLE_RE, '')
-    .split('\n')
-    .filter((line) => !/^\s*\S*\s*(proof of human|human verified|signed by a human|sent by a human|approved with touch id)\s*[·|-]\s*verified with inkline\s*$/i.test(line.trim()))
-    .join('\n');
+  // The footer and the quoted earlier messages were never signed (the
+  // footer is injected after signing; Gmail collapses the quote out of the
+  // compose box). Drop both so pasting the message as received verifies.
+  const { body, trimmedQuote } = cleanPastedBody($('body').value);
 
   const email = {
     from: $('from').value,
@@ -95,7 +94,8 @@ $('verify').addEventListener('click', async () => {
     verdict.appendChild(tier);
     const scope = document.createElement('div');
     scope.className = 'tier';
-    scope.textContent = 'Covers the message text, subject, and addresses. Images and attachments are not signed.';
+    scope.textContent = 'Covers the message text, subject, and addresses. Images and attachments are not signed.'
+      + (trimmedQuote ? ' Quoted earlier messages were left out: only the new text was signed.' : '');
     verdict.appendChild(scope);
   }
 
