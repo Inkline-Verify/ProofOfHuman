@@ -1,9 +1,12 @@
-# Inkline API (draft)
+# Inkline notary protocol (email stamps)
 
-Status: **sketch, seeking design partners.** The notary endpoints below exist
-today and are what the Gmail extension uses. The "Partner issuance" section is
-the planned generalization. Nothing here is stable yet; if you want to build on
-it, email inkline.approved@gmail.com and we will build it with you.
+This page documents the email-stamp endpoints of the reference notary in
+`notary/`, which is what the Gmail extension and helper use. The hosted
+**Approval API** (action approvals, Touch ID or passkey, API keys, webhooks)
+runs from a separate service repository and is documented at
+https://www.inklineverify.com/docs/api. It is in pilot; to integrate, sign in
+to the console at https://www.inklineverify.com/console or email
+gigialcaraz38@gmail.com and BhavyaBella@gmail.com.
 
 ## The primitive
 
@@ -16,16 +19,17 @@ Three roles:
   biometric-gated signature over its hash.
 - **Notary** (Inkline): verifies key enrollment (App Attest where the platform
   supports it), freshness (nonce), and the presence signature; co-signs and
-  issues a receipt. Never sees content — hashes only.
+  issues a receipt. For email stamps it never sees content, only hashes.
 - **Verifier** (anyone): checks the receipt offline against the notary's
   public key and the content itself. No account, no network call.
 
-## Current notary endpoints (v1, live)
+## Notary endpoints (v1)
 
 Base: your deployment of `notary/` (Node, zero deps). All bodies JSON.
 
 ### `GET /v1/info`
-Trust policy of this notary.
+Trust policy of this notary. The hosted notary also lists `"passkey"` in
+`tiers` (Approval API) and adds an `api` object.
 ```json
 { "v": 1, "tier": "enclave-attested", "tiers": ["enclave-attested"],
   "notary": { "pub": "<b64url P-256>", "kid": "<b64url sha256(pub)>" } }
@@ -63,30 +67,20 @@ the per-send App Attest assertion with a monotonic counter.
 → `{ "receipt": "<b64url token>" }`
 
 ### Receipt format
-`b64url(cjson({ v, payload, pub, sig, notary: { iat, kid, sig } }))` — the
-notary signature covers `"inkline.notary.v1\0" || cjson({iat, payload, pub, sig})`.
+`b64url(cjson({ v, payload, pub, sig, notary: { iat, kid, sig, tier } }))` —
+the notary signature covers
+`"inkline.notary.v1\0" || cjson({iat, payload, pub, sig, tier})`, so the tier
+cannot be stripped or changed. Receipts issued before tiers existed have no
+`tier` and are signed over the four-field shape.
 Verification is pure math; see `shared/receipt.js` (`verifyReceipt`) and the
 static page in `verifier/`.
 
-## Partner issuance (planned)
+## Beyond email
 
-What changes to make this usable beyond email:
+Generic actions, API keys, webhooks, and passkey approvals shipped in the
+hosted Approval API (receipt v2): see https://www.inklineverify.com/docs/api.
+`shared/action.js` and `packages/inkline-verify` verify those receipts
+offline.
 
-1. **Generic actions.** `payload.action` becomes partner-defined
-   (`"payment.approve"`, `"agent.step"`, `"review.publish"` ...) with a
-   canonicalization contract per action type published at `/v1/actions`.
-2. **API keys + rate limits** per partner; receipts carry the partner id.
-3. **Client SDKs.** `inkline.approve({ action, content })` for macOS
-   (Swift, Secure Enclave) first; Windows Hello and Android StrongBox next.
-4. **Webhooks** on issuance for partner-side audit logs.
-5. **Hosted verify page** per partner (`verify.inkline.../p/<partner>`), same
-   offline verification.
-
-What will NOT change: verification stays free, open source, and offline; the
-notary never receives content; a receipt that verifies today verifies forever.
-
-## Who this is for
-
-Payment/treasury approval flows, AI-agent platforms that need per-action human
-authorization, marketplaces and review platforms, hiring tools, e-signature.
-If that is you: inkline.approved@gmail.com
+What will not change: verification stays free, open source, and offline,
+and a receipt that verifies today verifies forever.

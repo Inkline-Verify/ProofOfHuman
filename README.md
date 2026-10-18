@@ -61,17 +61,17 @@ The hosted notary and approval API run from a separate service repository;
 
 ## Verify receipts in your own code
 
-```sh
-npm install inkline-verify
-```
-`packages/inkline-verify` publishes the same `shared/` modules the notary
+`packages/inkline-verify` packages the same `shared/` modules the notary
 and the public verify page use: `verify(receipt)` for approval receipts,
-`verify(receipt, { email })` for stamps. Offline, no dependencies.
+`verify(receipt, { email })` for stamps. Offline, no dependencies. It is not
+on npm yet; import it from the repo until it is.
 
 ## Install
 
-See [INSTALL.md](INSTALL.md). Short version: download the signed helper from
-Releases, run `./install.sh`, load `extension/` at `chrome://extensions`.
+See [INSTALL.md](INSTALL.md). Short version: load `extension/` from the
+release's `extension.zip` at `chrome://extensions`, then run `install.sh`,
+which downloads the signed helper, connects it to the extension, and enrolls
+your Mac.
 
 ## Develop & test
 

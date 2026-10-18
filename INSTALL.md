@@ -4,42 +4,44 @@
 
 - macOS 27 or later on a Mac with Touch ID (fingerprint enrolled). App
   Attest, which every stamp requires, is unavailable on earlier macOS.
-- Chrome or a Chromium browser, Gmail
+- Google Chrome and Gmail. Other Chromium browsers can work, but the
+  installer only registers the helper with Google Chrome; copy
+  `com.inkline.presence.json` into the other browser's
+  `NativeMessagingHosts` folder yourself.
 - For building the helper yourself instead of downloading: Xcode command line
   tools plus an Apple Development certificate *and provisioning profile* for
   `com.inkline.presence-helper` (see `scripts/build-app.sh`)
 
 ## Quick install
 
-1. In Terminal, run:
+1. Download `extension.zip` from the
+   [latest release](https://github.com/Inkline-Verify/ProofOfHuman/releases),
+   unzip it somewhere permanent, then `chrome://extensions` → Developer mode →
+   **Load unpacked** → select the unzipped `extension` folder. A setup page
+   opens and checks everything live. Do this first: the installer finds the
+   loaded extension to connect the helper to it, and stops if it is missing.
+2. In Terminal, run:
    ```sh
    curl -fsSL https://raw.githubusercontent.com/Inkline-Verify/ProofOfHuman/main/install.sh -o install.sh && sh install.sh
    ```
    It downloads the notarized helper from the GitHub release, verifies its
    SHA-256, installs it, connects it to Chrome, and enrolls this Mac.
-2. Download `extension.zip` from the
-   [latest release](https://github.com/Inkline-Verify/ProofOfHuman/releases),
-   unzip it somewhere permanent, then `chrome://extensions` → Developer mode →
-   **Load unpacked** → select the unzipped `extension` folder. A setup page
-   opens and checks everything live.
 3. Send yourself a Gmail message and approve it with Touch ID. The stamp
    links to your receipt at https://verify.inklineverify.com — anyone can
    check it there.
 
 ## Setup with an AI agent
 
-Open this repo in an AI coding agent (Claude Code, Cursor, ...) and paste:
+With Claude Code, open this repo and type `/install-inkline`: the repo ships
+a skill that walks you through loading the extension, runs `install.sh`, and
+troubleshoots. With another agent (Cursor, ...), ask it to follow
+`.claude/skills/install-inkline/SKILL.md`.
 
-> Set up Inkline on this Mac: run scripts/setup.sh with the default hosted
-> notary, tell me when to press Touch ID, and walk me through loading the
-> extension folder at chrome://extensions. If the helper is killed by macOS
-> or enrollment fails with errSecMissingEntitlement (-34018), stop and tell
-> me to download the signed helper from the GitHub Releases page instead of
-> building locally.
-
-The agent runs the build, registers the native host, and enrolls you. The one
-thing no agent can do is bypass Apple's code signing — Secure Enclave keys
-require a properly signed helper, which is why the Release build exists.
+Use the release helper that `install.sh` downloads. A helper built from
+source with `scripts/setup.sh` cannot create Secure Enclave keys unless it is
+signed with Inkline's provisioning profile (it fails with
+errSecMissingEntitlement, -34018), and no agent can get around Apple's code
+signing.
 
 ## Troubleshooting
 

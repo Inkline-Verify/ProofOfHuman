@@ -21,7 +21,13 @@ broken, emails simply send WITHOUT a stamp and the reason appears as
 
 ## Steps
 
-1. Run the installer from the repo root (it downloads the notarized helper
+1. Load the extension first: have the user open chrome://extensions, enable
+   Developer mode (top right), click "Load unpacked", and select the
+   `extension/` folder of this repo. You cannot do this step for them —
+   Chrome requires a human file-picker interaction. The installer finds the
+   extension ID from the loaded extension and stops ("could not determine
+   the Inkline extension ID") if it is not loaded yet.
+2. Run the installer from the repo root (it downloads the notarized helper
    from the GitHub release, verifies its SHA-256, checks Gatekeeper,
    registers the Chrome native-messaging host, and enrolls this Mac):
 
@@ -29,10 +35,6 @@ broken, emails simply send WITHOUT a stamp and the reason appears as
 
    Enrollment creates a fingerprint-locked key; if macOS prompts for
    Touch ID, tell the user to press it.
-2. Load the extension: have the user open chrome://extensions, enable
-   Developer mode (top right), click "Load unpacked", and select the
-   `extension/` folder of this repo. You cannot do this step for them —
-   Chrome requires a human file-picker interaction.
 3. The extension opens its onboarding page automatically (or open
    chrome-extension://<extension-id>/onboarding.html). It live-checks:
    helper installed, enrolled, stamp picked, first stamped send. Wait for
