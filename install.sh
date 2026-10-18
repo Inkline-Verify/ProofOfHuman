@@ -15,7 +15,7 @@
 #   6. enrolls this Mac with the notary (creates the Secure Enclave key).
 set -eu
 
-VERSION="${INKLINE_VERSION:-0.2.1}"
+VERSION="${INKLINE_VERSION:-0.2.2}"
 REPO="Inkline-Verify/ProofOfHuman"
 NOTARY_URL="${INKLINE_NOTARY_URL:-https://inkline-notary-production.up.railway.app}"
 # SHA-256 of dist/InklinePresenceHelper.zip for VERSION. Update on every
@@ -88,7 +88,7 @@ if [ ! -f "$NH" ]; then
     || die "cannot fetch install-native-host.sh (private repo or offline?) — download it from the release and place it next to install.sh"
 fi
 if [ -z "$EXT_ID" ] && [ -t 0 ]; then
-  printf "Chrome extension ID (leave empty to auto-detect): "
+  printf "Chrome extension ID (leave empty for the release extension): "
   read -r EXT_ID || true
 fi
 INKLINE_HELPER_APP="$APP" sh "$NH" $EXT_ID

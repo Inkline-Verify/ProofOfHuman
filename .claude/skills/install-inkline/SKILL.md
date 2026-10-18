@@ -21,12 +21,10 @@ broken, emails simply send WITHOUT a stamp and the reason appears as
 
 ## Steps
 
-1. Load the extension first: have the user open chrome://extensions, enable
+1. Load the extension: have the user open chrome://extensions, enable
    Developer mode (top right), click "Load unpacked", and select the
    `extension/` folder of this repo. You cannot do this step for them —
-   Chrome requires a human file-picker interaction. The installer finds the
-   extension ID from the loaded extension and stops ("could not determine
-   the Inkline extension ID") if it is not loaded yet.
+   Chrome requires a human file-picker interaction.
 2. Run the installer from the repo root (it downloads the notarized helper
    from the GitHub release, verifies its SHA-256, checks Gatekeeper,
    registers the Chrome native-messaging host, and enrolls this Mac):

@@ -18,8 +18,7 @@
    [latest release](https://github.com/Inkline-Verify/ProofOfHuman/releases),
    unzip it somewhere permanent, then `chrome://extensions` → Developer mode →
    **Load unpacked** → select the unzipped `extension` folder. A setup page
-   opens and checks everything live. Do this first: the installer finds the
-   loaded extension to connect the helper to it, and stops if it is missing.
+   opens and checks everything live.
 2. In Terminal, run:
    ```sh
    curl -fsSL https://raw.githubusercontent.com/Inkline-Verify/ProofOfHuman/main/install.sh -o install.sh && sh install.sh

@@ -6,8 +6,10 @@
 #   scripts/install-native-host.sh [EXTENSION_ID]
 #
 # The extension ID is taken from, in order: the argument, $INKLINE_EXTENSION_ID,
-# or auto-detection from Chrome's profile preferences when exactly one Inkline
-# extension is installed. Find it manually at chrome://extensions (Developer
+# auto-detection from Chrome's profile preferences when exactly one Inkline
+# extension is installed, or the ID pinned by the "key" in
+# extension/manifest.json (so the helper can be installed before the
+# extension is loaded). Find it manually at chrome://extensions (Developer
 # mode -> ID under the extension name).
 #
 # Which helper gets registered, in order: $INKLINE_HELPER_APP (a path to an
@@ -19,6 +21,9 @@ HOST_NAME="com.inkline.presence"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CHROME_SUPPORT="$HOME/Library/Application Support/Google/Chrome"
 HOST_DIR="$CHROME_SUPPORT/NativeMessagingHosts"
+# Derived from the public "key" in extension/manifest.json; identical for
+# everyone who loads the release extension unpacked.
+PINNED_EXTENSION_ID="honpeooknicfbejmjdlkekgocbfgcjkh"
 
 # --- extension ID -----------------------------------------------------------
 detect_extension_id() {
@@ -55,10 +60,8 @@ if [ -z "$EXT_ID" ]; then
   EXT_ID="$(detect_extension_id 2>/dev/null || true)"
 fi
 if [ -z "$EXT_ID" ]; then
-  echo "could not determine the Inkline extension ID." >&2
-  echo "Load the extension first (chrome://extensions -> Load unpacked -> extension/)," >&2
-  echo "then run: $0 <EXTENSION_ID>" >&2
-  exit 1
+  EXT_ID="$PINNED_EXTENSION_ID"
+  echo "Inkline extension not loaded yet; using the release extension ID."
 fi
 case "$EXT_ID" in
   *[!a-p]*|"") echo "invalid extension ID: $EXT_ID (expected 32 chars a-p)" >&2; exit 1;;
